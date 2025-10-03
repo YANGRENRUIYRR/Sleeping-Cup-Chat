@@ -63,9 +63,20 @@
             placeholder="输入您的用户名"
             class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all outline-none"
           >
+        </div>
+        <!-- 新增密码输入框 -->
+        <div class="flex gap-3 max-w-md mx-auto mt-4">
+          <input
+            type="password"
+            id="passwordInput"
+            placeholder="输入密码（仅限有密码用户）"
+            class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all outline-none"
+          >
+        </div>
+        <div class="mt-4 max-w-md mx-auto">
           <button 
             onclick="login()"
-            class="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-lg transition-all font-medium"
+            class="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-lg transition-all font-medium w-full"
           >
             登录
           </button>
@@ -109,9 +120,10 @@
     let username = '';
     
     function login() {
-      username = document.getElementById('usernameInput').value.trim();
+      const username = document.getElementById('usernameInput').value.trim();
+      const password = document.getElementById('passwordInput').value;
       if (username) {
-        socket.emit('login', username);
+        socket.emit('login', { username, password });
         document.getElementById('login').style.display = 'none';
         document.getElementById('chat').style.display = 'flex';
         document.getElementById('messageInput').focus();

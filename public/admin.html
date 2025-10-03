@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>管理员页面</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  
+  <!-- 配置Tailwind自定义颜色和字体 -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#165DFF',
+            secondary: '#36CFC9',
+            neutral: '#F5F7FA',
+            dark: '#1D2129',
+          },
+          fontFamily: {
+            inter: ['Inter', 'system-ui', 'sans-serif'],
+          },
+        },
+      }
+    }
+  </script>
+  
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .card-shadow {
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      }
+      .card-hover {
+        @apply transition-all duration-300 hover:shadow-xl hover:border-primary/20;
+      }
+      .btn-hover {
+        @apply transition-all duration-300 hover:shadow-lg transform hover:-translate-y-0.5;
+      }
+      .input-focus {
+        @apply focus:ring-2 focus:ring-primary/50 focus:border-primary focus:outline-none;
+      }
+      .section-divider {
+        @apply w-16 h-1 bg-primary/20 rounded-full my-8;
+      }
+    }
+  </style>
+</head>
+<body class="bg-gray-50 font-inter text-dark min-h-screen">
+  <div class="container mx-auto px-4 py-8 max-w-6xl">
+    <!-- 页面标题 -->
+    <header class="mb-12 text-center">
+      <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
+        <i class="fa fa-cogs text-primary text-2xl"></i>
+      </div>
+      <h1 class="text-[clamp(1.8rem,4vw,2.5rem)] font-bold text-dark mb-2">管理员控制台</h1>
+      <p class="text-gray-500 max-w-xl mx-auto">系统配置与管理中心，集中管理系统各项功能参数</p>
+      <div class="section-divider mx-auto"></div>
+    </header>
+    
+    <!-- 管理员密码验证区 -->
+    <div class="bg-white rounded-xl p-6 mb-8 card-shadow card-hover border border-gray-100">
+      <div class="flex items-center mb-4">
+        <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mr-3 flex-shrink-0">
+          <i class="fa fa-lock text-primary"></i>
+        </div>
+        <h2 class="text-xl font-semibold">管理员验证</h2>
+      </div>
+      <div class="pl-13">
+        <label for="adminPassword" class="block text-sm font-medium text-gray-700 mb-1">管理员密码：</label>
+        <input 
+          type="password" 
+          id="adminPassword" 
+          class="w-full border border-gray-300 rounded-lg p-3 input-focus transition-all duration-200 bg-gray-50"
+          placeholder="请输入管理员密码"
+        >
+        <p class="text-xs text-gray-500 mt-2">所有操作需要管理员密码验证以确保安全性</p>
+      </div>
+    </div>
+    
+    <!-- 主要功能区 - 两列布局 -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- 封禁IP -->
+      <div class="bg-white rounded-xl p-6 card-shadow card-hover border border-gray-100">
+        <div class="flex items-center mb-4">
+          <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center mr-3 flex-shrink-0">
+            <i class="fa fa-ban text-red-500"></i>
+          </div>
+          <h2 class="text-lg font-semibold">封禁 IP/IP段</h2>
+        </div>
+        <div class="space-y-3 pl-13">
+          <input 
+            type="text" 
+            id="banIP" 
+            placeholder="输入IP或IP段（例如：192.168.1.1 或 192.168.1.0/24）" 
+            class="w-full border border-gray-300 rounded-lg p-3 input-focus transition-all duration-200 bg-gray-50"
+          >
+          <button 
+            onclick="banIP()" 
+            class="w-full bg-red-500 text-white px-4 py-3 rounded-lg btn-hover font-medium"
+          >
+            <i class="fa fa-check mr-2"></i>执行封禁
+          </button>
+        </div>
+      </div>
+      
+      <!-- 解封IP -->
+      <div class="bg-white rounded-xl p-6 card-shadow card-hover border border-gray-100">
+        <div class="flex items-center mb-4">
+          <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mr-3 flex-shrink-0">
+            <i class="fa fa-unlock text-green-500"></i>
+          </div>
+          <h2 class="text-lg font-semibold">解封 IP/IP段</h2>
+        </div>
+        <div class="space-y-3 pl-13">
+          <input 
+            type="text" 
+            id="unbanIP" 
+            placeholder="输入IP或IP段（例如：192.168.1.1 或 192.168.1.0/24）" 
+            class="w-full border border-gray-300 rounded-lg p-3 input-focus transition-all duration-200 bg-gray-50"
+          >
+          <button 
+            onclick="unbanIP()" 
+            class="w-full bg-green-500 text-white px-4 py-3 rounded-lg btn-hover font-medium"
+          >
+            <i class="fa fa-check mr-2"></i>执行解封
+          </button>
+        </div>
+      </div>
+      
+      <!-- 设置用户密码 -->
+      <div class="bg-white rounded-xl p-6 card-shadow card-hover border border-gray-100">
+        <div class="flex items-center mb-4">
+          <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-3 flex-shrink-0">
+            <i class="fa fa-user text-blue-500"></i>
+          </div>
+          <h2 class="text-lg font-semibold">设置用户密码</h2>
+        </div>
+        <div class="space-y-3 pl-13">
+          <input 
+            type="text" 
+            id="userForPassword" 
+            placeholder="用户名" 
+            class="w-full border border-gray-300 rounded-lg p-3 input-focus transition-all duration-200 bg-gray-50"
+          >
+          <input 
+            type="text" 
+            id="userPassword" 
+            placeholder="密码（留空为无密码）" 
+            class="w-full border border-gray-300 rounded-lg p-3 input-focus transition-all duration-200 bg-gray-50"
+          >
+          <button 
+            onclick="setUserPassword()" 
+            class="w-full bg-blue-500 text-white px-4 py-3 rounded-lg btn-hover font-medium"
+          >
+            <i class="fa fa-save mr-2"></i>保存设置
+          </button>
+        </div>
+      </div>
+      
+      <!-- 敏感词管理 -->
+      <div class="bg-white rounded-xl p-6 card-shadow card-hover border border-gray-100">
+        <div class="flex items-center mb-4">
+          <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center mr-3 flex-shrink-0">
+            <i class="fa fa-shield text-purple-500"></i>
+          </div>
+          <h2 class="text-lg font-semibold">敏感词管理</h2>
+        </div>
+        <div class="space-y-3 pl-13">
+          <input 
+            type="text" 
+            id="banWordAdd" 
+            placeholder="添加敏感词" 
+            class="w-full border border-gray-300 rounded-lg p-3 input-focus transition-all duration-200 bg-gray-50"
+          >
+          <button 
+            onclick="addBanWord()" 
+            class="w-full bg-purple-500 text-white px-4 py-2 rounded-lg btn-hover font-medium"
+          >
+            <i class="fa fa-plus mr-2"></i>添加
+          </button>
+          
+          <div class="h-px bg-gray-100 my-2"></div>
+          
+          <input 
+            type="text" 
+            id="banWordRemove" 
+            placeholder="删除敏感词" 
+            class="w-full border border-gray-300 rounded-lg p-3 input-focus transition-all duration-200 bg-gray-50"
+          >
+          <button 
+            onclick="removeBanWord()" 
+            class="w-full bg-purple-600 text-white px-4 py-2 rounded-lg btn-hover font-medium"
+          >
+            <i class="fa fa-minus mr-2"></i>删除
+          </button>
+        </div>
+      </div>
+      
+      <!-- 系统配置 -->
+      <div class="bg-white rounded-xl p-6 card-shadow card-hover border border-gray-100 md:col-span-2">
+        <div class="flex items-center mb-4">
+          <div class="w-10 h-10 rounded-full bg-secondary/20 flex items-center justify-center mr-3 flex-shrink-0">
+            <i class="fa fa-sliders text-secondary"></i>
+          </div>
+          <h2 class="text-lg font-semibold">系统配置</h2>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pl-13">
+          <div>
+            <label for="maxUsers" class="block text-sm font-medium text-gray-700 mb-1">最大连接数：</label>
+            <input 
+              type="number" 
+              id="maxUsers" 
+              placeholder="设置系统最大允许连接数" 
+              class="w-full border border-gray-300 rounded-lg p-3 input-focus transition-all duration-200 bg-gray-50"
+            >
+          </div>
+          <div>
+            <label for="maxMessageLength" class="block text-sm font-medium text-gray-700 mb-1">最大消息长度：</label>
+            <input 
+              type="number" 
+              id="maxMessageLength" 
+              placeholder="设置单条消息最大长度限制" 
+              class="w-full border border-gray-300 rounded-lg p-3 input-focus transition-all duration-200 bg-gray-50"
+            >
+          </div>
+          <div class="md:col-span-2">
+            <button 
+              onclick="updateConfig()" 
+              class="w-full bg-secondary text-white px-4 py-3 rounded-lg btn-hover font-medium"
+            >
+              <i class="fa fa-refresh mr-2"></i>更新配置
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 修改admin密码 -->
+      <div class="bg-white rounded-xl p-6 card-shadow card-hover border border-gray-100 md:col-span-2">
+        <div class="flex items-center mb-4">
+          <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mr-3 flex-shrink-0">
+            <i class="fa fa-key text-primary"></i>
+          </div>
+          <h2 class="text-lg font-semibold">修改管理员密码</h2>
+        </div>
+        <div class="space-y-3 pl-13">
+          <input 
+            type="text" 
+            id="newAdminPassword" 
+            placeholder="新的管理员密码" 
+            class="w-full border border-gray-300 rounded-lg p-3 input-focus transition-all duration-200 bg-gray-50"
+          >
+          <button 
+            onclick="changeAdminPassword()" 
+            class="w-full bg-primary text-white px-4 py-3 rounded-lg btn-hover font-medium"
+          >
+            <i class="fa fa-exchange mr-2"></i>修改密码
+          </button>
+          <p class="text-xs text-gray-500 mt-1">请确保新密码安全且难以猜测，建议包含字母、数字和特殊字符</p>
+        </div>
+      </div>
+      
+      <!-- 系统状态模块 -->
+      <div class="bg-white rounded-xl p-6 card-shadow card-hover border border-gray-100 md:col-span-2">
+        <div class="flex items-center mb-4">
+          <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mr-3 flex-shrink-0">
+            <i class="fa fa-info-circle text-gray-500"></i>
+          </div>
+          <h2 class="text-lg font-semibold">系统状态</h2>
+        </div>
+        <div class="pl-13">
+          <button onclick="getAdminInfo()" class="w-full bg-gray-500 text-white px-4 py-3 rounded-lg btn-hover font-medium mb-4">
+            <i class="fa fa-refresh mr-2"></i>刷新信息
+          </button>
+          <div id="infoDisplay" class="text-sm text-gray-700 bg-gray-50 rounded-lg p-4 space-y-2">
+            <div class="flex items-center justify-center text-gray-400 py-6">
+              <i class="fa fa-clock-o mr-2"></i> 点击上方按钮刷新系统信息
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+
+  </div>
+
+  <script>
+    // 保持原有功能不变
+    function requestAPI(url, data) {
+      data.adminPassword = document.getElementById('adminPassword').value;
+      fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      })
+      .then(res => res.json())
+      .then(res => alert(JSON.stringify(res)))
+      .catch(err => alert(err));
+    }
+  
+    function banIP() {
+      const ip = document.getElementById('banIP').value;
+      requestAPI('/admin/ban', { ip });
+    }
+    function unbanIP() {
+      const ip = document.getElementById('unbanIP').value;
+      requestAPI('/admin/unban', { ip });
+    }
+    function setUserPassword() {
+      const username = document.getElementById('userForPassword').value;
+      const password = document.getElementById('userPassword').value;
+      requestAPI('/admin/setUserPassword', { username, password });
+    }
+    function addBanWord() {
+      const word = document.getElementById('banWordAdd').value;
+      requestAPI('/admin/banWord/add', { word });
+    }
+    function removeBanWord() {
+      const word = document.getElementById('banWordRemove').value;
+      requestAPI('/admin/banWord/remove', { word });
+    }
+    function updateConfig() {
+      const maxUsers = parseInt(document.getElementById('maxUsers').value);
+      const maxMessageLength = parseInt(document.getElementById('maxMessageLength').value);
+      requestAPI('/admin/updateConfig', { maxUsers, maxMessageLength });
+    }
+    function changeAdminPassword() {
+      const newAdminPassword = document.getElementById('newAdminPassword').value;
+      requestAPI('/admin/changeAdminPassword', { newAdminPassword });
+    }
+    
+    function getAdminInfo() {
+      const adminPassword = document.getElementById('adminPassword').value;
+      fetch(`/admin/info?adminPassword=${encodeURIComponent(adminPassword)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.error) {
+            document.getElementById('infoDisplay').innerHTML = `
+              <div class="text-red-500 flex items-center">
+                <i class="fa fa-exclamation-circle mr-2"></i> ${data.error}
+              </div>
+            `;
+          } else {
+            document.getElementById('infoDisplay').innerHTML = `
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="flex items-start">
+                  <div class="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center mr-2 mt-0.5 flex-shrink-0">
+                    <i class="fa fa-users text-blue-500 text-xs"></i>
+                  </div>
+                  <div>
+                    <p class="font-medium">在线用户</p>
+                    <p>${data.onlineUsers}</p>
+                  </div>
+                </div>
+                <div class="flex items-start">
+                  <div class="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center mr-2 mt-0.5 flex-shrink-0">
+                    <i class="fa fa-shield text-purple-500 text-xs"></i>
+                  </div>
+                  <div>
+                    <p class="font-medium">敏感词数量</p>
+                    <p>${data.banWords.length || '0'}</p>
+                  </div>
+                </div>
+                <div class="flex items-start">
+                  <div class="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center mr-2 mt-0.5 flex-shrink-0">
+                    <i class="fa fa-plug text-green-500 text-xs"></i>
+                  </div>
+                  <div>
+                    <p class="font-medium">最大连接数</p>
+                    <p>${data.config.maxUsers}</p>
+                  </div>
+                </div>
+                <div class="flex items-start">
+                  <div class="w-6 h-6 rounded-full bg-orange-100 flex items-center justify-center mr-2 mt-0.5 flex-shrink-0">
+                    <i class="fa fa-comment text-orange-500 text-xs"></i>
+                  </div>
+                  <div>
+                    <p class="font-medium">最大消息长度</p>
+                    <p>${data.config.maxMessageLength}</p>
+                  </div>
+                </div>
+              </div>
+              <div class="mt-4 pt-4 border-t border-gray-200">
+                <p class="font-medium mb-2">敏感词列表</p>
+                <p>${data.banWords.length ? data.banWords.join(', ') : '<span class="text-gray-400">无敏感词</span>'}</p>
+              </div>
+            `;
+          }
+        })
+        .catch(err => {
+          document.getElementById('infoDisplay').innerHTML = `
+            <div class="text-red-500 flex items-center">
+              <i class="fa fa-exclamation-circle mr-2"></i> 加载信息失败
+            </div>
+          `;
+        });
+    }
+  </script>
+</body>
+</html>
