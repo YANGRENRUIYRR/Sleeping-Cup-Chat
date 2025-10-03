@@ -245,7 +245,7 @@ app.get('/admin', (req, res) => {
 
 // 启动服务器
 const PORT = 8849;
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`服务器运行在 http://localhost:${PORT}`);
   console.log('WebSocket服务已启动，与HTTP服务无冲突');
 });
