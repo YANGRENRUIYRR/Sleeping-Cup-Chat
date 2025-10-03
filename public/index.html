@@ -120,7 +120,7 @@
     let username = '';
     
     function login() {
-      const username = document.getElementById('usernameInput').value.trim();
+      username = document.getElementById('usernameInput').value.trim(); // 修改：移除局部变量声明
       const password = document.getElementById('passwordInput').value;
       if (username) {
         socket.emit('login', { username, password });
@@ -150,11 +150,9 @@
     socket.on('message', (data) => {
       const chatArea = document.getElementById('chatArea');
       const isCurrentUser = data.username === username;
-      // 自己的消息靠右，别人的消息靠左
+      // 修改：使用蓝色背景显示自己的消息，浅灰色背景显示他人的消息
       const alignClass = isCurrentUser ? 'justify-end' : 'justify-start';
-      const bgClass = isCurrentUser ? 'bg-primary text-white' : 'bg-white border border-gray-200';
-      // 文字始终左对齐，通过容器的justify控制整体位置
-      
+      const bgClass = isCurrentUser ? 'bg-primary text-white' : 'bg-gray-200 text-dark';
       chatArea.innerHTML += `
         <div class="message-in flex ${alignClass}">
           <div class="${bgClass} p-3 rounded-lg shadow-sm max-w-[80%]">
