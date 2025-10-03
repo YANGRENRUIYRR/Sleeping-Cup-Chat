@@ -188,6 +188,12 @@
     // 错误消息
     socket.on('error', (message) => {
       alert(message);
+      if(message=='密码错误'){
+        document.getElementById('login').style.display = '';
+        document.getElementById('chat').style.display = 'none';
+        document.getElementById('usernameInput').focus();
+      }
+      
     });
   </script>
 </body>
