@@ -123,7 +123,6 @@ io.on('connection', (socket) => {
   // 接收消息
   socket.on('message', (message) => {
     const user = users.get(socket.id);
-    
     if (!user) return;
     
     // 检查消息长度
@@ -136,10 +135,34 @@ io.on('connection', (socket) => {
     const hasBanWord = config.banWords.some(word => 
       message.toLowerCase().includes(word.toLowerCase())
     );
-    
     if (hasBanWord) {
       socket.emit('error', '消息包含敏感词');
       return;
+    }
+    
+    // 新增@功能处理
+    const mentionRegex = /@([A-Za-z0-9_]{1,16})/g;
+    let match;
+    const mentions = [];
+    while ((match = mentionRegex.exec(message)) !== null) {
+      mentions.push(match[1]);
+    }
+    if (mentions.length > 0) {
+      const validMentions = mentions.filter(name =>
+        Array.from(users.values()).some(u => u.username === name)
+      );
+      if (validMentions.length === 0) {
+        socket.emit('error', '消息中提及的用户不存在');
+        return;
+      }
+      // 通知被@的用户
+      for (const name of validMentions) {
+        for (const [id, u] of users) {
+          if (u.username === name && id !== socket.id) {
+            io.to(id).emit('at', { from: user.username, message });
+          }
+        }
+      }
     }
     
     // 广播消息

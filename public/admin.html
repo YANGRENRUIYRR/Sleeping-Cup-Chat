@@ -5,6 +5,8 @@
   <title>管理员页面</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fastly.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <!-- 引入SweetAlert -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   
   <!-- 配置Tailwind自定义颜色和字体 -->
   <script>
@@ -284,52 +286,172 @@
   </div>
 
   <script>
-    // 保持原有功能不变
+    // 使用SweetAlert替代alert的API请求函数
     function requestAPI(url, data) {
-      data.adminPassword = document.getElementById('adminPassword').value;
+      const adminPassword = document.getElementById('adminPassword').value;
+      
+      // 验证管理员密码是否输入
+      if (!adminPassword) {
+        Swal.fire({
+          title: '验证失败',
+          text: '请输入管理员密码',
+          icon: 'warning',
+          confirmButtonColor: '#165DFF'
+        });
+        return;
+      }
+      
+      data.adminPassword = adminPassword;
       fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       })
       .then(res => res.json())
-      .then(res => alert(JSON.stringify(res)))
-      .catch(err => alert(err));
+      .then(res => {
+        if (res.error) {
+          Swal.fire({
+            title: '操作失败',
+            text: res.error,
+            icon: 'error',
+            confirmButtonColor: '#165DFF'
+          });
+        } else {
+          Swal.fire({
+            title: '操作成功',
+            text: JSON.stringify(res),
+            icon: 'success',
+            confirmButtonColor: '#165DFF'
+          });
+        }
+      })
+      .catch(err => {
+        Swal.fire({
+          title: '请求错误',
+          text: err.message || '服务器请求失败，请重试',
+          icon: 'error',
+          confirmButtonColor: '#165DFF'
+        });
+      });
     }
   
     function banIP() {
-      const ip = document.getElementById('banIP').value;
+      const ip = document.getElementById('banIP').value.trim();
+      if (!ip) {
+        Swal.fire({
+          title: '输入错误',
+          text: '请输入要封禁的IP或IP段',
+          icon: 'info',
+          confirmButtonColor: '#165DFF'
+        });
+        return;
+      }
       requestAPI('/admin/ban', { ip });
     }
+    
     function unbanIP() {
-      const ip = document.getElementById('unbanIP').value;
+      const ip = document.getElementById('unbanIP').value.trim();
+      if (!ip) {
+        Swal.fire({
+          title: '输入错误',
+          text: '请输入要解封的IP或IP段',
+          icon: 'info',
+          confirmButtonColor: '#165DFF'
+        });
+        return;
+      }
       requestAPI('/admin/unban', { ip });
     }
+    
     function setUserPassword() {
-      const username = document.getElementById('userForPassword').value;
+      const username = document.getElementById('userForPassword').value.trim();
       const password = document.getElementById('userPassword').value;
+      
+      if (!username) {
+        Swal.fire({
+          title: '输入错误',
+          text: '请输入用户名',
+          icon: 'info',
+          confirmButtonColor: '#165DFF'
+        });
+        return;
+      }
+      
       requestAPI('/admin/setUserPassword', { username, password });
     }
+    
     function addBanWord() {
-      const word = document.getElementById('banWordAdd').value;
+      const word = document.getElementById('banWordAdd').value.trim();
+      if (!word) {
+        Swal.fire({
+          title: '输入错误',
+          text: '请输入要添加的敏感词',
+          icon: 'info',
+          confirmButtonColor: '#165DFF'
+        });
+        return;
+      }
       requestAPI('/admin/banWord/add', { word });
     }
+    
     function removeBanWord() {
-      const word = document.getElementById('banWordRemove').value;
+      const word = document.getElementById('banWordRemove').value.trim();
+      if (!word) {
+        Swal.fire({
+          title: '输入错误',
+          text: '请输入要删除的敏感词',
+          icon: 'info',
+          confirmButtonColor: '#165DFF'
+        });
+        return;
+      }
       requestAPI('/admin/banWord/remove', { word });
     }
+    
     function updateConfig() {
       const maxUsers = parseInt(document.getElementById('maxUsers').value);
       const maxMessageLength = parseInt(document.getElementById('maxMessageLength').value);
+      
+      if (isNaN(maxUsers) || isNaN(maxMessageLength)) {
+        Swal.fire({
+          title: '输入错误',
+          text: '请输入有效的数字',
+          icon: 'info',
+          confirmButtonColor: '#165DFF'
+        });
+        return;
+      }
+      
       requestAPI('/admin/updateConfig', { maxUsers, maxMessageLength });
     }
+    
     function changeAdminPassword() {
       const newAdminPassword = document.getElementById('newAdminPassword').value;
+      if (!newAdminPassword) {
+        Swal.fire({
+          title: '输入错误',
+          text: '请输入新的管理员密码',
+          icon: 'info',
+          confirmButtonColor: '#165DFF'
+        });
+        return;
+      }
       requestAPI('/admin/changeAdminPassword', { newAdminPassword });
     }
     
     function getAdminInfo() {
       const adminPassword = document.getElementById('adminPassword').value;
+      
+      if (!adminPassword) {
+        Swal.fire({
+          title: '验证失败',
+          text: '请输入管理员密码',
+          icon: 'warning',
+          confirmButtonColor: '#165DFF'
+        });
+        return;
+      }
+      
       fetch(`/admin/info?adminPassword=${encodeURIComponent(adminPassword)}`)
         .then(res => res.json())
         .then(data => {
@@ -339,6 +461,13 @@
                 <i class="fa fa-exclamation-circle mr-2"></i> ${data.error}
               </div>
             `;
+            
+            Swal.fire({
+              title: '获取信息失败',
+              text: data.error,
+              icon: 'error',
+              confirmButtonColor: '#165DFF'
+            });
           } else {
             document.getElementById('infoDisplay').innerHTML = `
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -392,6 +521,13 @@
               <i class="fa fa-exclamation-circle mr-2"></i> 加载信息失败
             </div>
           `;
+          
+          Swal.fire({
+            title: '请求错误',
+            text: '获取系统信息失败，请重试',
+            icon: 'error',
+            confirmButtonColor: '#165DFF'
+          });
         });
     }
   </script>
