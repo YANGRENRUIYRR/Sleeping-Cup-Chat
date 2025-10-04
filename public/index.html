@@ -120,7 +120,12 @@
     let username = '';
     
     function login() {
-      username = document.getElementById('usernameInput').value.trim(); // 修改：移除局部变量声明
+      username = document.getElementById('usernameInput').value.trim();
+      // 新增：检查用户名长度，最多16字符
+      if (username.length > 16) {
+        alert("用户名最多16字符");
+        return;
+      }
       const password = document.getElementById('passwordInput').value;
       if (username) {
         socket.emit('login', { username, password });
@@ -188,7 +193,7 @@
     // 错误消息
     socket.on('error', (message) => {
       alert(message);
-      if(message=='密码错误'){
+      if(message=='密码错误'||message=='用户名包含非ASCII字符'||message=='该用户名已登录'||message=='您已被封禁'||message=='用户名最多16字符'){
         document.getElementById('login').style.display = '';
         document.getElementById('chat').style.display = 'none';
         document.getElementById('usernameInput').focus();

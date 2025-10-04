@@ -67,6 +67,26 @@ io.on('connection', (socket) => {
       password = data.password || "";
     }
     
+    // 禁止用户名中含有非ASCII字符
+    if (/[^\x00-\x7F]/.test(username)) {
+      socket.emit('error', '用户名包含非ASCII字符');
+      return;
+    }
+    
+    // 新增：验证用户名最多16字符
+    if (username.length > 16) {
+      socket.emit('error', '用户名最多16字符');
+      return;
+    }
+
+    // 禁止相同名字的用户登录
+    for (const user of users.values()) {
+      if (user.username === username) {
+        socket.emit('error', '该用户名已登录');
+        return;
+      }
+    }
+    
     // 检查是否被封禁
     if (banList.has(socket.handshake.address)) {
       socket.emit('error', '您已被封禁');
@@ -244,7 +264,7 @@ app.get('/admin', (req, res) => {
 });
 
 // 启动服务器
-let PORT = parseInt(process.argv[2], 10); // 从命令行获取端口
+let PORT = parseInt(process.argv[2], 0); // 从命令行获取端口
 if (isNaN(PORT)) {
   PORT = 8849; // 默认端口
 }
