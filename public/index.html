@@ -179,6 +179,28 @@
       chatArea.scrollTop = chatArea.scrollHeight;
     });
     
+    socket.on('history', (messages) => {
+      const chatArea = document.getElementById('chatArea');
+      messages.forEach(data => {
+        const isCurrentUser = data.username === username;
+        const atHighlight = (!isCurrentUser && data.content.includes("@" + username));
+        const alignClass = isCurrentUser ? 'justify-end' : 'justify-start';
+        const bgClass = atHighlight ? 'bg-blue-200 text-dark' : (isCurrentUser ? 'bg-primary text-white' : 'bg-gray-200 text-dark');
+        chatArea.innerHTML += `
+          <div class="message-in flex ${alignClass}">
+            <div class="${bgClass} p-3 rounded-lg shadow-sm max-w-[80%]">
+              <div class="font-semibold ${isCurrentUser ? 'text-white/90' : 'text-primary'}">
+                ${data.username}
+                <span class="text-xs opacity-70 ml-2">${data.time}</span>
+              </div>
+              <div class="mt-1 text-left">${data.content}</div>
+            </div>
+          </div>
+        `;
+      });
+      chatArea.scrollTop = chatArea.scrollHeight;
+    });
+    
     socket.on('at', (data) => {
       Swal.fire({
         title: '有人@你',

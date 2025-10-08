@@ -24,7 +24,8 @@ const config = {
   maxMessageLength: 2000,
   userPasswords: {},
   adminPassword: 'admin',
-  bannedIPs: []
+  bannedIPs: [],
+  historyCount: 30 // 新增：默认显示最近30条记录
 };
 
 // 加载配置
@@ -51,6 +52,9 @@ app.get('/', (req, res) => {
 function saveConfig() {
   fs.writeFileSync('config.json', JSON.stringify(config, null, 2));
 }
+
+// 全局：存储消息记录
+let messageHistory = [];
 
 // Socket.IO连接处理
 io.on('connection', (socket) => {
@@ -114,6 +118,9 @@ io.on('connection', (socket) => {
       connectedAt: new Date()
     });
     
+    // 登录成功后发送最近聊天记录
+    socket.emit('history', messageHistory.slice(-config.historyCount));
+    
     // 广播用户加入
     io.emit('system', `${username} 加入了聊天室`);
     // 发送当前用户列表
@@ -140,7 +147,7 @@ io.on('connection', (socket) => {
       return;
     }
     
-    // 新增@功能处理
+    // 处理@功能
     const mentionRegex = /@([A-Za-z0-9_]{1,16})/g;
     let match;
     const mentions = [];
@@ -165,15 +172,18 @@ io.on('connection', (socket) => {
       }
     }
     
-    // 广播消息
-    io.emit('message', {
+    // 构造消息对象
+    const msgData = {
       username: user.username,
       content: message,
       time: new Date().toLocaleTimeString()
-    });
+    };
+    // 保存消息记录
+    messageHistory.push(msgData);
+    
+    // 广播消息
+    io.emit('message', msgData);
   });
-  
-  
   
   // 断开连接处理
   socket.on('disconnect', () => {
@@ -247,11 +257,12 @@ app.post('/admin/banWord/remove', adminAuth, (req, res) => {
   res.json({ success: true });
 });
 
-// 更新最大连接数和最大消息长度
+// 更新最大连接数、最大消息长度和历史记录数量
 app.post('/admin/updateConfig', adminAuth, (req, res) => {
-  const { maxUsers, maxMessageLength } = req.body;
+  const { maxUsers, maxMessageLength, historyCount } = req.body;
   if (maxUsers !== undefined) config.maxUsers = maxUsers;
   if (maxMessageLength !== undefined) config.maxMessageLength = maxMessageLength;
+  if (historyCount !== undefined) config.historyCount = historyCount;
   saveConfig();
   res.json({ success: true });
 });
@@ -276,7 +287,8 @@ app.get('/admin/info', (req, res) => {
     onlineUsers: users.size,
     config: {
       maxUsers: config.maxUsers,
-      maxMessageLength: config.maxMessageLength
+      maxMessageLength: config.maxMessageLength,
+      historyCount: config.historyCount // 新增：历史记录条数
     }
   });
 });
