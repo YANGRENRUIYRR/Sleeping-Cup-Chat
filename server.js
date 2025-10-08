@@ -53,8 +53,22 @@ function saveConfig() {
   fs.writeFileSync('config.json', JSON.stringify(config, null, 2));
 }
 
-// 全局：存储消息记录
+// 新增：加载历史记录（只加载最近 config.historyCount 条记录）
 let messageHistory = [];
+try {
+  if (fs.existsSync('history.json')) {
+    const historyData = fs.readFileSync('history.json', 'utf8');
+    messageHistory = JSON.parse(historyData);
+  }
+} catch (err) {
+  console.log('加载历史记录失败，使用空记录');
+}
+
+// 新增：持久化历史记录到 history.json
+function saveHistory() {
+  const recentHistory = messageHistory.slice(-config.historyCount);
+  fs.writeFileSync('history.json', JSON.stringify(recentHistory, null, 2));
+}
 
 // Socket.IO连接处理
 io.on('connection', (socket) => {
@@ -180,6 +194,10 @@ io.on('connection', (socket) => {
     };
     // 保存消息记录
     messageHistory.push(msgData);
+    if (messageHistory.length > config.historyCount) {
+      messageHistory = messageHistory.slice(-config.historyCount);
+    }
+    saveHistory();
     
     // 广播消息
     io.emit('message', msgData);
