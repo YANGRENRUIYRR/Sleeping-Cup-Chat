@@ -4,6 +4,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
 const fs = require('fs');
+const multer = require('multer');
 const app = express();
 const server = http.createServer(app);
 
@@ -37,13 +38,68 @@ try {
 }
 
 // 设置静态文件目录
+const uploadDir = path.join(__dirname, 'public', 'uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: uploadDir,
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname) || '';
+    const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
+    cb(null, fileName);
+  }
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const allowed = /\.(png|jpe?g|gif|webp|bmp|svg)$/i;
+    if (!allowed.test(file.originalname) && !allowed.test(file.mimetype)) {
+      return cb(new Error('仅支持图片文件'));
+    }
+    cb(null, true);
+  }
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
+
+app.post('/upload-image', upload.single('image'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: '未选择图片文件' });
+  }
+  res.json({ url: `/uploads/${req.file.filename}` });
+});
 
 // 主页路由
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
+
+function saveImageDataUrl(dataUrl) {
+  const match = dataUrl.match(/^data:(image\/(png|jpe?g|gif|webp|bmp|svg\+xml|svg));base64,(.+)$/i);
+  if (!match) return null;
+  const mimeType = match[1].toLowerCase();
+  const extMap = {
+    'image/jpeg': 'jpg',
+    'image/jpg': 'jpg',
+    'image/png': 'png',
+    'image/gif': 'gif',
+    'image/webp': 'webp',
+    'image/bmp': 'bmp',
+    'image/svg+xml': 'svg',
+    'image/svg': 'svg'
+  };
+  const ext = extMap[mimeType] || mimeType.split('/')[1];
+  const buffer = Buffer.from(match[3], 'base64');
+  if (buffer.length > 5 * 1024 * 1024) return null;
+  const fileName = `uploads/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  fs.writeFileSync(path.join(__dirname, 'public', fileName), buffer);
+  return `/${fileName.replace(/\\/g, '/')}`;
+}
 
 // 管理员页面
 
@@ -145,51 +201,82 @@ io.on('connection', (socket) => {
   socket.on('message', (message) => {
     const user = users.get(socket.id);
     if (!user) return;
-    
+
+    let type = 'text';
+    let content = '';
+    if (message && typeof message === 'object') {
+      type = message.type === 'image' ? 'image' : 'text';
+      content = String(message.content || '');
+    } else {
+      content = String(message || '');
+    }
+
     // 检查消息长度
-    if (message.length > config.maxMessageLength) {
+    if (content.length > config.maxMessageLength) {
       socket.emit('error', `消息过长，最大长度为 ${config.maxMessageLength} 字符`);
       return;
     }
-    
-    // 检查敏感词
-    const hasBanWord = config.banWords.some(word => 
-      message.toLowerCase().includes(word.toLowerCase())
-    );
-    if (hasBanWord) {
-      socket.emit('error', '消息包含敏感词');
-      return;
-    }
-    
-    // 处理@功能
-    const mentionRegex = /@([A-Za-z0-9_]{1,16})/g;
-    let match;
-    const mentions = [];
-    while ((match = mentionRegex.exec(message)) !== null) {
-      mentions.push(match[1]);
-    }
-    if (mentions.length > 0) {
-      const validMentions = mentions.filter(name =>
-        Array.from(users.values()).some(u => u.username === name)
+
+    if (type === 'image') {
+      if (content.startsWith('data:image/')) {
+        const savedUrl = saveImageDataUrl(content);
+        if (!savedUrl) {
+          socket.emit('error', '本地图片上传失败，图片格式或大小不支持（最大 5MB）');
+          return;
+        }
+        content = savedUrl;
+      } else {
+        const urlPattern = /^https?:\/\/[^" ]+$/i;
+        const localUploadPattern = /^\/uploads\/[^\s]+$/i;
+        const imageExtPattern = /\.(png|jpe?g|gif|webp|bmp|svg)(\?.*)?$/i;
+        if ((urlPattern.test(content) || localUploadPattern.test(content)) && imageExtPattern.test(content)) {
+          // Accept either remote http(s) URL or local uploaded /uploads/ path.
+        } else {
+          socket.emit('error', '图片链接格式不正确，请使用 http(s) 图片 URL 或本地上传');
+          return;
+        }
+      }
+    } else {
+      // 检查敏感词
+      const hasBanWord = config.banWords.some(word =>
+        content.toLowerCase().includes(word.toLowerCase())
       );
-      if (validMentions.length === 0) {
-        socket.emit('error', '消息中提及的用户不存在');
+      if (hasBanWord) {
+        socket.emit('error', '消息包含敏感词');
         return;
       }
-      // 通知被@的用户
-      for (const name of validMentions) {
-        for (const [id, u] of users) {
-          if (u.username === name && id !== socket.id) {
-            io.to(id).emit('at', { from: user.username, message });
+
+      // 处理@功能
+      const mentionRegex = /@([A-Za-z0-9_]{1,16})/g;
+      let match;
+      const mentions = [];
+      while ((match = mentionRegex.exec(content)) !== null) {
+        mentions.push(match[1]);
+      }
+      if (mentions.length > 0) {
+        const validMentions = mentions.filter(name =>
+          Array.from(users.values()).some(u => u.username === name)
+        );
+        if (validMentions.length === 0) {
+          socket.emit('error', '消息中提及的用户不存在');
+          return;
+        }
+        // 通知被@的用户
+        for (const name of validMentions) {
+          for (const [id, u] of users) {
+            if (u.username === name && id !== socket.id) {
+              io.to(id).emit('at', { from: user.username, message: content });
+            }
           }
         }
       }
     }
-    
+
     // 构造消息对象
     const msgData = {
       username: user.username,
-      content: message,
+      type,
+      content,
       time: new Date().toLocaleTimeString()
     };
     // 保存消息记录
@@ -198,7 +285,7 @@ io.on('connection', (socket) => {
       messageHistory = messageHistory.slice(-config.historyCount);
     }
     saveHistory();
-    
+
     // 广播消息
     io.emit('message', msgData);
   });

@@ -1,248 +1,499 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-  <title>聊天室</title>
-  <!-- 引入Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- 引入Font Awesome图标 -->
-  <link href="https://fastly.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
-  <!-- 引入SweetAlert -->
-  <script src="https://fastly.jsdelivr.net/npm/sweetalert2@11"></script>
-  
-  <!-- 配置Tailwind自定义颜色 -->
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            primary: '#165DFF',
-            secondary: '#36BFFA',
-            system: '#6B7280',
-            light: '#F9FAFB',
-          },
-          fontFamily: {
-            inter: ['Inter', 'system-ui', 'sans-serif'],
+  <head>
+    <title>聊天室</title>
+    <!-- 引入Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入Font Awesome图标 -->
+    <link
+      href="https://fastly.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css"
+      rel="stylesheet"
+    />
+    <!-- 引入SweetAlert -->
+    <script src="https://fastly.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- 引入 Markdown-it 和 DOMPurify，用于安全渲染 Markdown -->
+    <script src="https://fastly.jsdelivr.net/npm/markdown-it/dist/markdown-it.min.js"></script>
+    <script src="https://fastly.jsdelivr.net/npm/dompurify/dist/purify.min.js"></script>
+
+    <!-- 配置Tailwind自定义颜色 -->
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: "#165DFF",
+              secondary: "#36BFFA",
+              system: "#6B7280",
+              light: "#F9FAFB",
+            },
+            fontFamily: {
+              inter: ["Inter", "system-ui", "sans-serif"],
+            },
           },
         },
+      };
+    </script>
+
+    <style type="text/tailwindcss">
+      @layer utilities {
+        .content-auto {
+          content-visibility: auto;
+        }
+        .message-in {
+          animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .chat-message p {
+          margin: 0.35rem 0;
+        }
+        .chat-message h1,
+        .chat-message h2,
+        .chat-message h3,
+        .chat-message h4,
+        .chat-message h5,
+        .chat-message h6 {
+          margin: 0.5rem 0 0.35rem;
+          font-weight: 700;
+          line-height: 1.2;
+        }
+        .chat-message h1 {
+          font-size: 1.25rem;
+        }
+        .chat-message h2 {
+          font-size: 1.125rem;
+        }
+        .chat-message h3 {
+          font-size: 1rem;
+        }
+        .chat-message img {
+          display: block;
+          max-width: 100%;
+          max-height: 360px;
+          object-fit: contain;
+          border-radius: 0.75rem;
+          margin: 0.5rem 0;
+        }
+        .chat-message code {
+          background: rgba(15, 23, 42, 0.08);
+          color: #111827;
+          padding: 0.15rem 0.3rem;
+          border-radius: 0.35rem;
+        }
+        .chat-message pre {
+          background: rgba(15, 23, 42, 0.08);
+          padding: 0.75rem;
+          border-radius: 0.75rem;
+          overflow-x: auto;
+        }
+        .chat-message a {
+          color: #165dff;
+          text-decoration: underline;
+        }
       }
-    }
-  </script>
-  
-  <style type="text/tailwindcss">
-    @layer utilities {
-      .content-auto {
-        content-visibility: auto;
-      }
-      .message-in {
-        animation: fadeIn 0.3s ease-in;
-      }
-      @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-    }
-  </style>
-</head>
-<body class="bg-gray-50 font-inter min-h-screen">
-  <div class="max-w-3xl mx-auto px-4 py-8">
-    <div class="bg-white rounded-xl overflow-hidden shadow-lg">
-      <div class="bg-primary text-white p-4">
-        <h1 class="text-xl font-bold flex items-center">
-          <i class="fa fa-comments mr-2"></i> 聊天室
-        </h1>
-      </div>
-      
-      <div id="login" class="p-8 text-center">
-        <div class="mb-6">
-          <i class="fa fa-user-circle text-6xl text-primary/70"></i>
+    </style>
+  </head>
+  <body class="bg-gray-50 font-inter min-h-screen">
+    <!-- 只改这里：max-w-4xl 加宽 + px-2 py-4 极小留白 -->
+    <div class="max-w-4xl mx-auto px-2 py-4">
+      <div class="bg-white rounded-xl overflow-hidden shadow-lg">
+        <div class="bg-primary text-white p-4">
+          <h1 class="text-xl font-bold flex items-center">
+            <i class="fa fa-comments mr-2"></i> 聊天室
+          </h1>
         </div>
-        <h2 class="text-xl font-semibold text-gray-800 mb-4">请登录聊天室</h2>
-        <div class="flex gap-3 max-w-md mx-auto">
-          <input 
-            type="text" 
-            id="usernameInput" 
-            placeholder="输入您的用户名"
-            class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all outline-none"
-          >
-        </div>
-        <!-- 新增密码输入框 -->
-        <div class="flex gap-3 max-w-md mx-auto mt-4">
-          <input
-            type="password"
-            id="passwordInput"
-            placeholder="输入密码（仅限有密码用户）"
-            class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all outline-none"
-          >
-        </div>
-        <div class="mt-4 max-w-md mx-auto">
-          <button 
-            onclick="login()"
-            class="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-lg transition-all font-medium w-full"
-          >
-            登录
-          </button>
-        </div>
-      </div>
-      
-      <div id="chat" class="hidden flex flex-col h-[600px]">
-        <div id="chatArea" class="flex-1 p-4 overflow-y-auto space-y-4 bg-gray-50"></div>
-        
-        <div class="border-t p-4 bg-white">
-          <div class="flex gap-3 mb-3">
-            <span class="text-sm text-gray-600">
-              <i class="fa fa-users text-primary mr-1"></i>
-              在线用户: <span id="userList" class="font-medium"></span>
-            </span>
+
+        <div id="login" class="p-8 text-center">
+          <div class="mb-6">
+            <i class="fa fa-user-circle text-6xl text-primary/70"></i>
           </div>
-          
-          <div class="flex gap-3">
-            <input 
-              type="text" 
-              id="messageInput" 
-              placeholder="输入消息，按Enter发送"
+          <h2 class="text-xl font-semibold text-gray-800 mb-4">请登录聊天室</h2>
+          <div class="flex gap-3 max-w-md mx-auto">
+            <input
+              type="text"
+              id="usernameInput"
+              placeholder="输入您的用户名"
               class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all outline-none"
+            />
+          </div>
+          <!-- 新增密码输入框 -->
+          <div class="flex gap-3 max-w-md mx-auto mt-4">
+            <input
+              type="password"
+              id="passwordInput"
+              placeholder="输入密码（仅限有密码用户）"
+              class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all outline-none"
+            />
+          </div>
+          <div class="mt-4 max-w-md mx-auto">
+            <button
+              onclick="login()"
+              class="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-lg transition-all font-medium w-full"
             >
-            <button 
-              onclick="sendMessage()"
-              class="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-lg transition-all flex items-center gap-2 font-medium"
-            >
-              <i class="fa fa-paper-plane"></i>
-              <span>发送</span>
+              登录
             </button>
+          </div>
+        </div>
+
+        <div id="chat" class="hidden flex flex-col h-[calc(100vh-120px)]">
+          <div
+            id="chatArea"
+            class="flex-1 p-4 overflow-y-auto space-y-4 bg-gray-50"
+          ></div>
+
+          <div class="border-t px-2 py-3 bg-white">
+            <div class="flex gap-3 mb-3">
+              <span class="text-sm text-gray-600">
+                <i class="fa fa-users text-primary mr-1"></i>
+                在线用户: <span id="userList" class="font-medium"></span>
+              </span>
+            </div>
+
+            <div class="flex flex-col gap-3 w-full">
+              <div class="flex gap-3">
+                <textarea
+                  id="messageInput"
+                  rows="3"
+                  placeholder="输入消息，支持 Markdown，Shift+Enter 换行，Enter 发送"
+                  class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all outline-none resize-y"
+                ></textarea>
+              </div>
+              <div class="flex gap-3">
+                <button
+                  onclick="sendMessage()"
+                  class="w-full bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-lg transition-all flex items-center justify-center gap-2 font-medium"
+                >
+                  <i class="fa fa-paper-plane"></i>
+                  <span>发送</span>
+                </button>
+              </div>
+              <div class="flex gap-3">
+                <input
+                  type="text"
+                  id="imageUrlInput"
+                  placeholder="输入图片 URL，支持 http(s)"
+                  class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all outline-none"
+                />
+              </div>
+              <div class="flex gap-3">
+                <button
+                  onclick="sendImage()"
+                  class="w-full bg-secondary hover:bg-secondary/90 text-white px-6 py-3 rounded-lg transition-all flex items-center justify-center gap-2 font-medium"
+                >
+                  <i class="fa fa-image"></i>
+                  <span>发送图片</span>
+                </button>
+              </div>
+
+              <input
+                type="file"
+                id="imageFileInput"
+                accept="image/*"
+                class="hidden"
+              />
+
+              <div class="flex gap-3">
+                <button
+                  onclick="chooseLocalImage()"
+                  class="w-full bg-secondary hover:bg-secondary/90 text-white px-6 py-3 rounded-lg transition-all flex items-center justify-center gap-2 font-medium"
+                >
+                  <i class="fa fa-upload"></i>
+                  <span>本地上传</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <script src="/socket.io/socket.io.js"></script>
-  <script>
-    const socket = io();
-    let username = '';
-    
-    function login() {
-      username = document.getElementById('usernameInput').value.trim();
-      // 新增：检查用户名长度，最多16字符
-      if (username.length > 16) {
-        Swal.fire({
-          title: '提示',
-          text: '用户名最多16字符',
-          icon: 'info',
-          confirmButtonColor: '#165DFF'
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const socket = io();
+      const md = window.markdownit({
+        html: false,
+        linkify: true,
+        typographer: true,
+        breaks: true,
+      });
+      let username = "";
+
+      function renderMarkdownToHtml(text) {
+        return DOMPurify.sanitize(md.render(text));
+      }
+
+      function login() {
+        username = document.getElementById("usernameInput").value.trim();
+        // 新增：检查用户名长度，最多16字符
+        if (username.length > 16) {
+          Swal.fire({
+            title: "提示",
+            text: "用户名最多16字符",
+            icon: "info",
+            confirmButtonColor: "#165DFF",
+          });
+          return;
+        }
+        const password = document.getElementById("passwordInput").value;
+        if (username) {
+          socket.emit("login", { username, password });
+          document.getElementById("login").style.display = "none";
+          document.getElementById("chat").style.display = "flex";
+          document.getElementById("messageInput").focus();
+        }
+      }
+
+      function sendMessage() {
+        const input = document.getElementById("messageInput");
+        const message = input.value.trim();
+        if (message) {
+          socket.emit("message", { type: "text", content: message });
+          input.value = "";
+        }
+      }
+
+      async function sendImage() {
+        const urlInput = document.getElementById("imageUrlInput");
+        const imageUrl = urlInput.value.trim();
+
+        if (!imageUrl) {
+          Swal.fire({
+            title: "提示",
+            text: "请输入图片 URL 或点击“本地上传”选择文件",
+            icon: "info",
+            confirmButtonColor: "#165DFF",
+          });
+          return;
+        }
+        if (!isImageUrl(imageUrl)) {
+          Swal.fire({
+            title: "提示",
+            text: "请输入有效的图片 URL（png/jpg/jpeg/gif/webp/bmp/svg）",
+            icon: "warning",
+            confirmButtonColor: "#165DFF",
+          });
+          return;
+        }
+        socket.emit("message", { type: "image", content: imageUrl });
+        urlInput.value = "";
+      }
+
+      function chooseLocalImage() {
+        const fileInput = document.getElementById("imageFileInput");
+        fileInput.value = "";
+        fileInput.click();
+      }
+
+      document
+        .getElementById("imageFileInput")
+        .addEventListener("change", async () => {
+          const fileInput = document.getElementById("imageFileInput");
+          const file = fileInput.files[0];
+          const urlInput = document.getElementById("imageUrlInput");
+
+          if (!file) return;
+          if (!file.type.startsWith("image/")) {
+            Swal.fire({
+              title: "提示",
+              text: "请选择图片文件",
+              icon: "warning",
+              confirmButtonColor: "#165DFF",
+            });
+            fileInput.value = "";
+            return;
+          }
+          if (file.size > 5 * 1024 * 1024) {
+            Swal.fire({
+              title: "提示",
+              text: "本地图片不能超过 5MB",
+              icon: "warning",
+              confirmButtonColor: "#165DFF",
+            });
+            fileInput.value = "";
+            return;
+          }
+
+          const formData = new FormData();
+          formData.append("image", file);
+
+          try {
+            const res = await fetch("/upload-image", {
+              method: "POST",
+              body: formData,
+            });
+            const result = await res.json();
+            if (!res.ok) {
+              throw new Error(result.error || "图片上传失败");
+            }
+            socket.emit("message", { type: "image", content: result.url });
+            fileInput.value = "";
+            urlInput.value = "";
+          } catch (err) {
+            Swal.fire({
+              title: "上传失败",
+              text: err.message,
+              icon: "error",
+              confirmButtonColor: "#165DFF",
+            });
+            fileInput.value = "";
+          }
         });
-        return;
+
+      function isImageUrl(url) {
+        try {
+          const parsed = new URL(url);
+          return (
+            ["http:", "https:"].includes(parsed.protocol) &&
+            /\.(png|jpe?g|gif|webp|bmp|svg)(\?.*)?$/i.test(
+              parsed.pathname + parsed.search,
+            )
+          );
+        } catch (err) {
+          return false;
+        }
       }
-      const password = document.getElementById('passwordInput').value;
-      if (username) {
-        socket.emit('login', { username, password });
-        document.getElementById('login').style.display = 'none';
-        document.getElementById('chat').style.display = 'flex';
-        document.getElementById('messageInput').focus();
+
+      function escapeHtml(text) {
+        return text
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
       }
-    }
-    
-    function sendMessage() {
-      const input = document.getElementById('messageInput');
-      const message = input.value.trim();
-      if (message) {
-        socket.emit('message', message);
-        input.value = '';
-      }
-    }
-    
-    // 按Enter发送消息
-    document.getElementById('messageInput').addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        sendMessage();
-      }
-    });
-    
-    // 接收消息
-    socket.on('message', (data) => {
-      const chatArea = document.getElementById('chatArea');
-      const isCurrentUser = data.username === username;
-      // 如果消息中包含@当前用户名且非自己发的，则标记为at被提及
-      const atHighlight = (!isCurrentUser && data.content.includes("@" + username));
-      const alignClass = isCurrentUser ? 'justify-end' : 'justify-start';
-      const bgClass = atHighlight ? 'bg-blue-200 text-dark' : (isCurrentUser ? 'bg-primary text-white' : 'bg-gray-200 text-dark');
-      chatArea.innerHTML += `
+
+      // Shift+Enter 换行，Enter 发送
+      document
+        .getElementById("messageInput")
+        .addEventListener("keydown", (e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+          }
+        });
+
+      // 接收消息
+      socket.on("message", (data) => {
+        const chatArea = document.getElementById("chatArea");
+        const isCurrentUser = data.username === username;
+        const isImageMessage = data.type === "image";
+        // 如果消息中包含@当前用户名且非自己发的，则标记为at被提及
+        const atHighlight =
+          !isCurrentUser &&
+          !isImageMessage &&
+          data.content.includes("@" + username);
+        const alignClass = isCurrentUser ? "justify-end" : "justify-start";
+        const bgClass = atHighlight
+          ? "bg-blue-200 text-dark"
+          : isCurrentUser
+            ? "bg-primary text-white"
+            : "bg-gray-200 text-dark";
+        const contentHtml = isImageMessage
+          ? `<img src="${escapeHtml(data.content)}" alt="图片消息">`
+          : renderMarkdownToHtml(data.content);
+        chatArea.innerHTML += `
         <div class="message-in flex ${alignClass}">
           <div class="${bgClass} p-3 rounded-lg shadow-sm max-w-[80%]">
-            <div class="font-semibold ${isCurrentUser ? 'text-white/90' : 'text-primary'}">
+            <div class="font-semibold ${isCurrentUser ? "text-white/90" : "text-primary"}">
               ${data.username}
               <span class="text-xs opacity-70 ml-2">${data.time}</span>
             </div>
-            <div class="mt-1 text-left">${data.content}</div>
+            <div class="mt-1 text-left chat-message">${contentHtml}</div>
           </div>
         </div>
       `;
-      chatArea.scrollTop = chatArea.scrollHeight;
-    });
-    
-    socket.on('history', (messages) => {
-      const chatArea = document.getElementById('chatArea');
-      messages.forEach(data => {
-        const isCurrentUser = data.username === username;
-        const atHighlight = (!isCurrentUser && data.content.includes("@" + username));
-        const alignClass = isCurrentUser ? 'justify-end' : 'justify-start';
-        const bgClass = atHighlight ? 'bg-blue-200 text-dark' : (isCurrentUser ? 'bg-primary text-white' : 'bg-gray-200 text-dark');
-        chatArea.innerHTML += `
+        chatArea.scrollTop = chatArea.scrollHeight;
+      });
+
+      socket.on("history", (messages) => {
+        const chatArea = document.getElementById("chatArea");
+        messages.forEach((data) => {
+          const isCurrentUser = data.username === username;
+          const isImageMessage = data.type === "image";
+          const atHighlight =
+            !isCurrentUser &&
+            !isImageMessage &&
+            data.content.includes("@" + username);
+          const alignClass = isCurrentUser ? "justify-end" : "justify-start";
+          const bgClass = atHighlight
+            ? "bg-blue-200 text-dark"
+            : isCurrentUser
+              ? "bg-primary text-white"
+              : "bg-gray-200 text-dark";
+          const contentHtml = isImageMessage
+            ? `<img src="${escapeHtml(data.content)}" alt="图片消息">`
+            : renderMarkdownToHtml(data.content);
+          chatArea.innerHTML += `
           <div class="message-in flex ${alignClass}">
             <div class="${bgClass} p-3 rounded-lg shadow-sm max-w-[80%]">
-              <div class="font-semibold ${isCurrentUser ? 'text-white/90' : 'text-primary'}">
+              <div class="font-semibold ${isCurrentUser ? "text-white/90" : "text-primary"}">
                 ${data.username}
                 <span class="text-xs opacity-70 ml-2">${data.time}</span>
               </div>
-              <div class="mt-1 text-left">${data.content}</div>
+              <div class="mt-1 text-left chat-message">${contentHtml}</div>
             </div>
           </div>
         `;
+        });
+        chatArea.scrollTop = chatArea.scrollHeight;
       });
-      chatArea.scrollTop = chatArea.scrollHeight;
-    });
-    
-    socket.on('at', (data) => {
-      Swal.fire({
-        title: '有人@你',
-        text: `您被 ${data.from} 提及了`,
-        icon: 'info',
-        confirmButtonColor: '#165DFF'
+
+      socket.on("at", (data) => {
+        Swal.fire({
+          title: "有人@你",
+          text: `您被 ${data.from} 提及了`,
+          icon: "info",
+          confirmButtonColor: "#165DFF",
+        });
       });
-    });
-    
-    // 系统消息
-    socket.on('system', (message) => {
-      const chatArea = document.getElementById('chatArea');
-      chatArea.innerHTML += `
+
+      // 系统消息
+      socket.on("system", (message) => {
+        const chatArea = document.getElementById("chatArea");
+        chatArea.innerHTML += `
         <div class="message-in flex justify-center">
           <div class="bg-gray-100 text-system text-sm px-4 py-2 rounded-full">
             ${message}
           </div>
         </div>
       `;
-      chatArea.scrollTop = chatArea.scrollHeight;
-    });
-    
-    // 用户列表更新
-    socket.on('userList', (users) => {
-      document.getElementById('userList').textContent = users.join(', ');
-    });
-    
-    // 错误消息
-    socket.on('error', (message) => {
-      Swal.fire({
-        title: '错误',
-        text: message,
-        icon: 'error',
-        confirmButtonColor: '#165DFF'
-      }).then(() => {
-        if(message=='密码错误'||message=='用户名包含非ASCII字符'||message=='该用户名已登录'||message=='您已被封禁'||message=='用户名最多16字符'){
-          document.getElementById('login').style.display = '';
-          document.getElementById('chat').style.display = 'none';
-          document.getElementById('usernameInput').focus();
-        }
+        chatArea.scrollTop = chatArea.scrollHeight;
       });
-    });
-  </script>
-</body>
+
+      // 用户列表更新
+      socket.on("userList", (users) => {
+        document.getElementById("userList").textContent = users.join(", ");
+      });
+
+      // 错误消息
+      socket.on("error", (message) => {
+        Swal.fire({
+          title: "错误",
+          text: message,
+          icon: "error",
+          confirmButtonColor: "#165DFF",
+        }).then(() => {
+          if (
+            message == "密码错误" ||
+            message == "用户名包含非ASCII字符" ||
+            message == "该用户名已登录" ||
+            message == "您已被封禁" ||
+            message == "用户名最多16字符"
+          ) {
+            document.getElementById("login").style.display = "";
+            document.getElementById("chat").style.display = "none";
+            document.getElementById("usernameInput").focus();
+          }
+        });
+      });
+    </script>
+  </body>
 </html>
